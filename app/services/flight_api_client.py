@@ -84,7 +84,7 @@ async def fetch_schedule(airport_code: str, flight_type: str) -> list[dict[str, 
 
 def simplify_flight_data(flights: list[dict], flight_type: str) -> list[dict]:
     """
-    Упрощает структуру данных о рейсах.
+    Упрощает структуру данных о рейсах с обработкой отсутствующих данных.
     """
     simplified_flights = []
 
@@ -101,7 +101,7 @@ def simplify_flight_data(flights: list[dict], flight_type: str) -> list[dict]:
             record = {
                 "type": flight_type,
                 "flightNumber": identification.get('number', {}).get('default'),
-                "airline": airline_info.get('name'),
+                "airline": airline_info.get('name') if airline_info else None,  # Безопасная проверка
                 "status": status_info.get('text'),
                 "aircraftModel": aircraft_info.get('model', {}).get('text'),
             }
@@ -109,25 +109,25 @@ def simplify_flight_data(flights: list[dict], flight_type: str) -> list[dict]:
             if flight_type == 'arrival':
                 origin = airport_info.get('origin', {})
                 origin_position = origin.get('position', {})
-                origin_region = origin_position.get('region', {})
-                origin_country = origin_position.get('country', {})
+                origin_region = origin_position.get('region', {}) if origin_position else {}
+                origin_country = origin_position.get('country', {}) if origin_position else {}
 
                 record.update({
                     "originAirport": origin.get('name'),
-                    "originCity": origin_region.get('city'),
-                    "originCountry": origin_country.get('name'),
+                    "originCity": origin_region.get('city') if origin_region else None,
+                    "originCountry": origin_country.get('name') if origin_country else None,
                     "scheduledTime": convert_timestamp(time_info.get('scheduled', {}).get('arrival'))
                 })
             else:  # departure
                 destination = airport_info.get('destination', {})
                 destination_position = destination.get('position', {})
-                destination_region = destination_position.get('region', {})
-                destination_country = destination_position.get('country', {})
+                destination_region = destination_position.get('region', {}) if destination_position else {}
+                destination_country = destination_position.get('country', {}) if destination_position else {}
 
                 record.update({
                     "destinationAirport": destination.get('name'),
-                    "destinationCity": destination_region.get('city'),
-                    "destinationCountry": destination_country.get('name'),
+                    "destinationCity": destination_region.get('city') if destination_region else None,
+                    "destinationCountry": destination_country.get('name') if destination_country else None,
                     "scheduledTime": convert_timestamp(time_info.get('scheduled', {}).get('departure'))
                 })
 
@@ -135,7 +135,7 @@ def simplify_flight_data(flights: list[dict], flight_type: str) -> list[dict]:
 
         except Exception as e:
             print(f"Error processing flight record: {e}")
-            print(f"Problematic flight data: {flight}")
+            print(f"Problematic flight data keys: {list(flight.keys()) if isinstance(flight, dict) else 'not a dict'}")
             continue
 
     return simplified_flights
