@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Questions Assistant</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>✈️ Спроси о рейсах</h1>
+        <form id="flight-form">
+            <div class="form-group">
+                <label for="airport-select">Выберите аэропорт:</label>
+                <select id="airport-select" name="airport">
+                    <option value="DXB">Дубай (DXB)</option>
+                    <option value="LHR">Лондон-Хитроу (LHR)</option>
+                    <option value="CDG">Париж-Шарль де Голль (CDG)</option>
+                    <option value="SIN">Сингапур (SIN)</option>
+                    <option value="HKG">Гонконг (HKG)</option>
+                    <option value="AMS">Амстердам (AMS)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="question-input">Ваш вопрос:</label>
+                <input type="text" id="question-input" name="question" placeholder="Например: Сколько рейсов прибыло из Германии?" required>
+            </div>
+            <button type="submit" id="submit-btn">Получить ответ</button>
+        </form>
+        <div id="result-container" class="hidden">
+            <h2>Ответ:</h2>
+            <p id="answer-text"></p>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('flight-form');
+        const resultContainer = document.getElementById('result-container');
+        const answerText = document.getElementById('answer-text');
+        const submitBtn = document.getElementById('submit-btn');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const airport = document.getElementById('airport-select').value;
+            const question = document.getElementById('question-input').value;
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Обработка...';
+            resultContainer.classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ airport, question }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    let errorMessage = data.detail;
+                    if (Array.isArray(errorMessage) && errorMessage[0].msg) {
+                        errorMessage = errorMessage[0].msg;
+                    }
+                    throw new Error(errorMessage || 'Произошла неизвестная ошибка');
+                }
+
+                answerText.textContent = data.answer;
+                resultContainer.classList.remove('hidden');
+
+            } catch (error) {
+                answerText.textContent = `Ошибка: ${error.message}`;
+                resultContainer.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Получить ответ';
+            }
+        });
+    </script>
+</body>
+</html>
